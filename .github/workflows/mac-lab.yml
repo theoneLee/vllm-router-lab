@@ -1,0 +1,41 @@
+name: Mac Router Lab
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  mac:
+    runs-on: macos-15
+    timeout-minutes: 50
+    env:
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Check and build the Go fleet
+        run: |
+          go test -race ./...
+          go build -o routerlab .
+      - uses: actions/checkout@v4
+        with:
+          repository: vllm-project/router
+          ref: 159dcfcfcd717765d48b2ad24267f2a073d2501b
+          path: upstream
+      - name: Build the pinned native Router
+        working-directory: upstream
+        run: |
+          command -v protoc || brew install protobuf
+          cargo build --locked --bin vllm-router
+      - name: Compare policies and verify the million-request baseline
+        run: |
+          ulimit -n 8192
+          export ROUTER=./upstream/target/debug/vllm-router
+          python3 scripts/compare.py --router "$ROUTER" --router-version 159dcfc --requests 1000 --workers 2 --stream --output 4 --results results/policies
+          python3 scripts/compare.py --router "$ROUTER" --router-version 159dcfc --requests 1000000 --workers 100 --concurrency 128 --policies round_robin --results results/million
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mac-router-results
+          path: results/
