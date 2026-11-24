@@ -20,6 +20,10 @@
 
 吞吐按客户端完成的 HTTP 请求和实际墙钟时间计算。Worker 数表示独立的 HTTP 地址。所有测试使用 CPU 模拟推理；短文本响应、缓存查找、HTTP 转发和 Go/Rust 调度都会影响结果。一次运行的数值适合检查容量与回归，策略排名需要在目标机器上重复、控制背景负载并使用业务 trace。
 
+### macOS arm64 · 100 Worker，100 万次
+
+在 GitHub 托管的 macOS 15 arm64 runner 上编译原生 Router `159dcfc`（debug，无调试符号）和 Go Worker。`round_robin`，并发 128，100 个独立 Worker 各收到 10,000 次；客户端与后端合计均为 1,000,000，错误 0。耗时 116.17 秒，吞吐 8,608 req/s，端到端 p99 为 33.84 ms。同一 CI 还在两个 Worker 上执行三种策略各 1,000 次流式请求。Mac 用主线 debug 构建，Linux 百万基线用发布 wheel；两组数据各自用于环境内验收。[百万原始 JSON](mac/million/round_robin.json) · [流式数据](mac/policies/) · [CI 记录](https://github.com/theoneLee/vllm-router-lab/actions/runs/45414886888)
+
 ### Linux · 100 Worker，三种策略各 100 万次
 
 使用官方 v0.1.17 Linux x86_64 wheel、并发 128、种子 42。每个请求有 33 个输入 token，最后一个 token 区分请求，输出 1 个 token，非流式；使用 32 种共享前缀。模拟 prefill、decode 延迟均为零。各策略使用相同的请求序列和独立启动的进程。本轮主要验证请求记账和端点分布；部分时段与小规模功能测试重叠。

@@ -1,0 +1,48 @@
+{
+  "dispatch_lag_ms": {
+    "p50": 8.838042,
+    "p95": 85.202875,
+    "p99": 86.032792
+  },
+  "e2e_ms": {
+    "p50": 9.037292,
+    "p95": 83.721459,
+    "p99": 85.929542
+  },
+  "errors": 0,
+  "first_error": "",
+  "inter_chunk_ms": {
+    "p50": 0.267111,
+    "p95": 2.317777,
+    "p99": 3.768416
+  },
+  "rate": 0,
+  "requests": 1000,
+  "seconds": 0.255681542,
+  "seed": 42,
+  "success": 1000,
+  "success_rps": 3911.1153358109837,
+  "ttft_ms": {
+    "p50": 7.444292,
+    "p95": 82.304541,
+    "p99": 85.837541
+  },
+  "policy": "round_robin",
+  "router_version": "159dcfc",
+  "worker_counts": [
+    500,
+    500
+  ],
+  "workers": 2,
+  "profile": {},
+  "backend_received": 1000,
+  "cached_prompt_tokens": 29952,
+  "prompt_tokens": 33000,
+  "cached_fraction": 0.9076363636363637,
+  "concurrency": 64,
+  "system": "Darwin",
+  "machine": "arm64",
+  "trace": null,
+  "synthetic_output": 4,
+  "synthetic_stream": true
+}
