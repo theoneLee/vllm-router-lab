@@ -26,9 +26,12 @@ type rank struct {
 	algorithm                        string
 	slots                            chan struct{}
 	hits, requests, canceled, broken atomic.Int64
+	promptTokens                     atomic.Int64
+	lastReportedAlgorithm            string
 	active, waiting                  atomic.Int64
 }
 type fleetConfig struct {
+	intHashes                                       bool
 	profile                                         profile
 	version, seed                                   string
 	metricsOnly                                     bool
@@ -112,7 +115,7 @@ func (w *worker) ServeHTTP(out http.ResponseWriter, r *http.Request) {
 	case "/lab/state":
 		k.mu.Lock()
 		defer k.mu.Unlock()
-		m := object{"instance": w.id, "rank": n, "active": k.active.Load(), "waiting": k.waiting.Load(), "received": k.requests.Load(), "metrics_reads": k.metricsReads.Load(), "hits": k.hits.Load(), "canceled": k.canceled.Load(), "broken": k.broken.Load()}
+		m := object{"last_reported_algorithm": k.lastReportedAlgorithm, "instance": w.id, "rank": n, "active": k.active.Load(), "waiting": k.waiting.Load(), "received": k.requests.Load(), "metrics_reads": k.metricsReads.Load(), "hits": k.hits.Load(), "canceled": k.canceled.Load(), "broken": k.broken.Load()}
 		if k.events != nil {
 			k.events.mu.Lock()
 			m["next_seq"] = k.events.seq
@@ -125,6 +128,7 @@ func (w *worker) ServeHTTP(out http.ResponseWriter, r *http.Request) {
 			s.mu.Lock()
 			s.metricsReads.Add(1)
 			algo := s.algorithm
+			s.lastReportedAlgorithm = algo
 			used := s.cache.order.Len()
 			s.mu.Unlock()
 			label := ""
@@ -132,7 +136,7 @@ func (w *worker) ServeHTTP(out http.ResponseWriter, r *http.Request) {
 				label = fmt.Sprintf(",prefix_caching_hash_algo=%q", algo)
 			}
 			fmt.Fprintf(out, "vllm:cache_config_info{engine=%q,block_size=%q,enable_prefix_caching=\"True\"%s} 1\n", strconv.Itoa(i), strconv.Itoa(w.cfg.size), label)
-			for name, val := range map[string]int64{"vllm:prefix_cache_hits_total": s.hits.Load(), "vllm:num_requests_running": s.active.Load(), "vllm:num_requests_waiting": s.waiting.Load(), "lab_requests_total": s.requests.Load(), "lab_metrics_reads_total": s.metricsReads.Load(), "lab_canceled_total": s.canceled.Load(), "lab_broken_total": s.broken.Load()} {
+			for name, val := range map[string]int64{"vllm:prefix_cache_hits_total": s.hits.Load(), "vllm:num_requests_running": s.active.Load(), "vllm:num_requests_waiting": s.waiting.Load(), "lab_requests_total": s.requests.Load(), "lab_prompt_tokens_total": s.promptTokens.Load(), "lab_metrics_reads_total": s.metricsReads.Load(), "lab_canceled_total": s.canceled.Load(), "lab_broken_total": s.broken.Load()} {
 				fmt.Fprintf(out, "%s{engine=%q} %d\n", name, strconv.Itoa(i), val)
 			}
 			fmt.Fprintf(out, "vllm:kv_cache_usage_perc{engine=%q} %g\n", strconv.Itoa(i), float64(used)/float64(w.cfg.blocks))
@@ -198,6 +202,7 @@ func (w *worker) complete(out http.ResponseWriter, r *http.Request, k *rank, n i
 	k.active.Add(1)
 	defer func() { <-k.slots; k.active.Add(-1) }()
 	k.requests.Add(1)
+	k.promptTokens.Add(int64(len(q.Prompt)))
 	k.mu.Lock()
 	hits := k.cache.prefix(q.Prompt, w.cfg.size)
 	k.mu.Unlock()
@@ -274,6 +279,7 @@ func repeatToken(n int) string {
 func fleet(args []string) error {
 	var c fleetConfig
 	f := flag.NewFlagSet("fleet", flag.ContinueOnError)
+	f.BoolVar(&c.intHashes, "int-hashes", false, "export low 64 bits as vLLM legacy integer event hashes")
 	f.StringVar(&c.version, "vllm-version", "", "versioned vLLM profile (developer server_info disabled); see protocol/versions.json")
 	f.StringVar(&c.seed, "hash-seed", "", "explicit numeric PYTHONHASHSEED for SHA-256 CBOR")
 	f.BoolVar(&c.metricsOnly, "metrics-only", false, "discover cache metadata via per-rank metrics")
@@ -319,7 +325,7 @@ func fleet(args []string) error {
 			if err != nil {
 				return err
 			}
-			k := &rank{batch: newBatcher(ctx, c.tick, c.budget), cache: cache{capacity: c.blocks, rootHash: hashRoot}, algorithm: "sha256_cbor", slots: make(chan struct{}, c.slots)}
+			k := &rank{batch: newBatcher(ctx, c.tick, c.budget), cache: cache{capacity: c.blocks, rootHash: hashRoot, intHashes: c.intHashes}, algorithm: "sha256_cbor", slots: make(chan struct{}, c.slots)}
 			if c.events {
 				feed, e := newFeed(ctx, fmt.Sprintf("kv/%s/%d", w.id, j), j, c.window)
 				if e != nil {

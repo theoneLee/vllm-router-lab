@@ -113,10 +113,19 @@ func (f *feed) metadata() object {
 }
 
 type cache struct {
-	rootHash digest
-	blocks   map[digest]*list.Element
-	order    list.List
-	capacity int
+	rootHash  digest
+	intHashes bool
+	blocks    map[digest]*list.Element
+	order     list.List
+	capacity  int
+}
+
+// vLLM optionally exports the low 64 bits of the digest for legacy subscribers.
+func (c *cache) external(key digest) any {
+	if c.intHashes {
+		return binary.BigEndian.Uint64(key[24:])
+	}
+	return key[:]
 }
 
 func (c *cache) prefix(tokens []uint32, size int) int {
@@ -153,14 +162,13 @@ func (c *cache) access(tokens []uint32, blockSize int) (int, []object) {
 			if c.order.Len() >= c.capacity {
 				victim := c.order.Remove(c.order.Front()).(digest)
 				delete(c.blocks, victim)
-				events = append(events, object{"type": "BlockRemoved", "block_hashes": [][]byte{victim[:]}, "medium": "GPU", "group_idx": 0})
+				events = append(events, object{"type": "BlockRemoved", "block_hashes": []any{c.external(victim)}, "medium": "GPU", "group_idx": 0})
 			}
 			var p any
 			if start > 0 {
-				copyParent := parent
-				p = copyParent[:]
+				p = c.external(parent)
 			}
-			events = append(events, object{"type": "BlockStored", "block_hashes": [][]byte{key[:]}, "parent_block_hash": p, "token_ids": chunk, "block_size": blockSize, "lora_id": nil, "lora_name": nil, "medium": "GPU", "group_idx": 0, "kv_cache_spec_kind": "full_attention"})
+			events = append(events, object{"type": "BlockStored", "block_hashes": []any{c.external(key)}, "parent_block_hash": p, "token_ids": chunk, "block_size": blockSize, "lora_id": nil, "lora_name": nil, "medium": "GPU", "group_idx": 0, "kv_cache_spec_kind": "full_attention"})
 			c.blocks[key] = c.order.PushBack(key)
 		}
 		parent = key
