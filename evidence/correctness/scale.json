@@ -1,0 +1,10 @@
+{
+  "case": "scale",
+  "router": "159dcfc",
+  "worker_version": null,
+  "observed": {},
+  "passed": [
+    "scale out/in and same-address restart with new worker identity"
+  ],
+  "status": "passed"
+}

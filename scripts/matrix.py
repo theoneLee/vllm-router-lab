@@ -14,7 +14,6 @@ from urllib.error import HTTPError
 import cbor2
 import msgspec
 import zmq
-
 from audit import CACHE, CLASSES, EVENTS, HASHING, ROOT, inspect, source
 from compare import process, ready
 from regress import call, complete, control
@@ -173,6 +172,7 @@ def main():
                 wire_bytes="passed",
                 wire_uint64="passed",
                 dual_rank_gap_replay="passed",
+                rank_eviction="passed",
                 discovery="http" if row["source_discovery"] else "static",
             )
         )

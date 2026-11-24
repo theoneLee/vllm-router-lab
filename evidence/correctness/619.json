@@ -1,0 +1,17 @@
+{
+  "case": "619",
+  "router": "159dcfcfcd717765d48b2ad24267f2a073d2501b",
+  "worker_version": "0.34.0",
+  "observed": {
+    "metrics_reads_before": 1,
+    "metrics_reads_after": 1,
+    "rank1_last_reported_algorithm": "sha256_cbor",
+    "rank0_prefix_lookup_hit": true,
+    "rank1_prefix_lookup_hit": true
+  },
+  "passed": [
+    "separate warm prefixes reached their actual ranks with Router credit"
+  ],
+  "status": "failed",
+  "error": "AssertionError('condition timed out: revoked')"
+}

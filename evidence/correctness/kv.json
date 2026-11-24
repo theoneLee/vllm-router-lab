@@ -1,0 +1,12 @@
+{
+  "case": "kv",
+  "router": "159dcfcfcd717765d48b2ad24267f2a073d2501b",
+  "worker_version": "0.34.0",
+  "observed": {},
+  "passed": [
+    "separate warm prefixes reached their actual ranks with Router credit",
+    "missing clear recovered via replay; healthy rank retained credit",
+    "rank 1 LRU removal revoked the old prefix while rank 0 stayed warm"
+  ],
+  "status": "passed"
+}

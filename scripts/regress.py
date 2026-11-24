@@ -5,13 +5,15 @@ import http.client
 import json
 import re
 import shlex
-from tempfile import TemporaryDirectory
+import subprocess
 import time
 from contextlib import ExitStack
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from urllib.parse import quote
 from urllib.request import Request, urlopen
-from compare import get, ready, process
+
+from compare import get, process, ready
 
 
 def call(url, body=None, rank=None, method=None):
@@ -101,14 +103,21 @@ def kv(worker, target, metrics, issue, log, observed):
         def revoked():
             good, _ = has_hit(target, metrics, prompts[0])
             bad, _ = has_hit(target, metrics, prompts[1])
-            after = state(worker, 1)["metrics_reads"]
+            latest = state(worker, 1)
+            after = latest["metrics_reads"]
             observed.update(
                 metrics_reads_before=before,
                 metrics_reads_after=after,
+                rank1_last_reported_algorithm=latest["last_reported_algorithm"],
                 rank0_prefix_lookup_hit=good,
                 rank1_prefix_lookup_hit=bad,
             )
-            return after > before and good and not bad
+            return (
+                after > before
+                and latest["last_reported_algorithm"] == "sha256"
+                and good
+                and not bad
+            )
 
         until(revoked, 45)
         # With one competing long request on rank 0, the ineligible cache rank can still serve.
@@ -150,6 +159,25 @@ def kv(worker, target, metrics, issue, log, observed):
     )
     log.append("missing clear recovered via replay; healthy rank retained credit")
 
+    resident = list(range(10000, 10129))
+    replacement = list(range(20000, 20129))
+    control(worker, "freeze?value=0", 1)
+    complete(worker, replacement, 1)
+    control(worker, "freeze?value=1", 1)
+
+    def evicted():
+        new_hit, response = has_hit(target, metrics, replacement)
+        return (
+            new_hit
+            and response.get("lab_rank") == 1
+            and response["usage"]["prompt_tokens_details"]["cached_tokens"] == 128
+            and not has_hit(target, metrics, resident)[0]
+        )
+
+    until(evicted)
+    assert has_hit(target, metrics, prompts[0])[0]
+    log.append("rank 1 LRU removal revoked the old prefix while rank 0 stayed warm")
+
 
 def startup_metadata(worker, target, metrics, log, observed):
     tokens0, tokens1 = [list(range(start, start + 129)) for start in (1000, 4000)]
@@ -182,7 +210,7 @@ def startup_metadata(worker, target, metrics, log, observed):
         time.sleep(0.05)
 
 
-def streams(worker, target, log):
+def streams(worker, target, lab, log):
     tokens = list(range(65))
     pre = state(worker)
     req = Request(
@@ -218,6 +246,17 @@ def streams(worker, target, log):
     log.append(
         "client cancel and upstream cut released slots; next completion succeeded"
     )
+    control(worker, "cut?value=3")
+    replay = subprocess.run(
+        [lab, "replay", "-url", target, "-n", "1", "-stream", "-output", "8"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=10,
+    )
+    summary = json.loads(replay.stdout)
+    assert replay.returncode != 0 and summary["errors"] == 1 and summary["success"] == 0
+    log.append("the replay CLI rejected the truncated SSE response and exited nonzero")
 
 
 def run(a):
@@ -239,6 +278,8 @@ def run(a):
         "-decode",
         "30ms",
     ]
+    if dual:
+        lab += ["-blocks", "8"]
     if a.case.startswith("619"):
         lab += ["-metrics-only"]
     router = shlex.split(a.router) + [
@@ -319,17 +360,21 @@ def run(a):
             elif dual:
                 kv(w, target, metrics, a.case == "619", passed, observed)
             elif a.case == "stream":
-                streams(w, target, passed)
+                streams(w, target, a.lab, passed)
             else:
                 other = f"http://127.0.0.1:{a.base + 1}"
                 cmd = [a.lab, "fleet", "-port", str(a.base + 1), "-workers", "1"]
+                previous_instance = None
                 for i in range(2):
                     with process(cmd, out / ("epoch-" + str(i) + ".log")) as added:
                         ready(other + "/health", added)
                         info = state(other)
-                        if i:
-                            assert info["instance"] != old and info["hits"] == 0
-                        old = info["instance"]
+                        if previous_instance is not None:
+                            assert (
+                                info["instance"] != previous_instance
+                                and info["hits"] == 0
+                            )
+                        previous_instance = info["instance"]
                         call(target + "/workers", {"url": other})
                         until(
                             lambda: (

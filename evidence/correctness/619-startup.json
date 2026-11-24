@@ -1,0 +1,17 @@
+{
+  "case": "619-startup",
+  "router": "159dcfcfcd717765d48b2ad24267f2a073d2501b",
+  "worker_version": "0.34.0",
+  "observed": {
+    "rank1_last_reported_algorithm": "sha256",
+    "rank1_metrics_reads": 1,
+    "rank1_prefix_lookup_hit": true,
+    "routed_rank": 1,
+    "backend_cached_tokens": 128
+  },
+  "passed": [
+    "Router fetched incompatible rank 1 metadata, rank 0 still receives KV credit"
+  ],
+  "status": "failed",
+  "error": "AssertionError('Router credited rank 1 prefix after reading incompatible startup metadata')"
+}

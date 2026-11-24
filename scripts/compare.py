@@ -4,12 +4,12 @@ import argparse
 import contextlib
 import json
 import platform
-from pathlib import Path
 import re
 import shlex
 import subprocess
 import time
 import urllib.request
+from pathlib import Path
 
 
 def get(url):
@@ -87,15 +87,18 @@ def main(a):
     target = f"http://127.0.0.1:{a.port}"
     profile = json.loads(Path(a.profile).read_text()) if a.profile else {}
     for policy in a.policies:
-        flags = [x for k, v in profile.items() for x in ["-" + k, str(v)]]
+        flags = [
+            f"-{key}={str(value).lower() if isinstance(value, bool) else value}"
+            for key, value in profile.items()
+        ]
         fleet = [
             a.lab,
             "fleet",
+            *flags,
             "-workers",
             str(a.workers),
             "-port",
             str(a.base),
-            *flags,
         ]
         router = shlex.split(a.router) + [
             "--worker-urls",
@@ -135,7 +138,9 @@ def main(a):
                     cmd.append("-stream")
                 if a.trace:
                     cmd.extend(["-trace", a.trace])
-                run = subprocess.run(cmd, stdout=subprocess.PIPE, text=True)
+                run = subprocess.run(
+                    cmd, check=False, stdout=subprocess.PIPE, text=True
+                )
                 report = json.loads(run.stdout)
                 scrapes = [get(u + "/metrics") for u in urls]
                 counts = [int(counter(m, "lab_requests_total")) for m in scrapes]

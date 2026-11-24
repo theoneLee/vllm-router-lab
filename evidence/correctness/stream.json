@@ -1,0 +1,11 @@
+{
+  "case": "stream",
+  "router": "159dcfc",
+  "worker_version": null,
+  "observed": {},
+  "passed": [
+    "client cancel and upstream cut released slots; next completion succeeded",
+    "the replay CLI rejected the truncated SSE response and exited nonzero"
+  ],
+  "status": "passed"
+}
