@@ -23,12 +23,12 @@ func TestNativeChain(t *testing.T) {
 func TestEvict(t *testing.T) {
 	c := cache{capacity: 2}
 	a := []uint32{1, 2, 3, 4}
-	_, e := c.access(a, 2)
+	e := c.store(a, 2)
 	if len(e) != 2 || c.prefix(a, 2) != 4 {
 		t.Fatal(e)
 	}
-	_, e = c.access([]uint32{8, 9}, 2)
-	if e[0]["type"] != "BlockRemoved" || c.prefix(a, 2) != 0 {
+	e = c.store([]uint32{8, 9}, 2)
+	if _, removed := e[0].(blockRemoved); !removed || c.prefix(a, 2) != 0 {
 		t.Fatal(e)
 	}
 }

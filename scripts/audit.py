@@ -36,8 +36,8 @@ def inspect(repo, tag):
     nodes = {
         n.name: n for n in ast.parse(event_source).body if isinstance(n, ast.ClassDef)
     }
-    cache = source(repo, commit, CACHE)
-    api = source(repo, commit, BASIC)
+    cache = ast.unparse(ast.parse(source(repo, commit, CACHE)))
+    api = ast.unparse(ast.parse(source(repo, commit, BASIC)))
     wire = [
         ast.unparse(n.args[0])
         for n in ast.walk(nodes["ZmqEventPublisher"])
@@ -49,22 +49,26 @@ def inspect(repo, tag):
         "(client_id, b'', b'', self.END_SEQ, b'')",
     }
     if set(wire) != required:
-        raise ValueError(f"{tag}: publisher or replay framing changed")
-    if '(-1).to_bytes(8, "big", signed=True)' not in event_source:
-        raise ValueError(f"{tag}: replay sentinel changed")
-    if 'DEFAULT_NONE_HASH_SEED = "vllm-none-hash"' in cache:
+        raise ValueError(
+            f"{tag}: review publisher/replay source shape against the wire tests"
+        )
+    if "(-1).to_bytes(8, 'big', signed=True)" not in ast.unparse(
+        nodes["ZmqEventPublisher"]
+    ):
+        raise ValueError(f"{tag}: review replay sentinel source shape")
+    if "DEFAULT_NONE_HASH_SEED = 'vllm-none-hash'" in cache:
         fixed = True
     elif "NONE_HASH = BlockHash(os.urandom(32))" in cache:
         fixed = False
     else:
         raise ValueError(f"{tag}: unknown hash root")
-    env = source(repo, commit, "vllm/envs.py")
-    if 'os.getenv("VLLM_KV_EVENTS_USE_INT_BLOCK_HASHES", "1")' not in env:
+    env = ast.unparse(ast.parse(source(repo, commit, "vllm/envs.py")))
+    if "os.getenv('VLLM_KV_EVENTS_USE_INT_BLOCK_HASHES', '1')" not in env:
         raise ValueError(f"{tag}: review event hash format default")
     return {
         "version": tag[1:],
         "commit": commit,
-        "source_discovery": '"/kv_event_sources"' in api,
+        "source_discovery": "@router.get('/kv_event_sources')" in api,
         "fixed_cbor_root": fixed,
         "int_hashes_default": True,
         "block_stored_fields": [

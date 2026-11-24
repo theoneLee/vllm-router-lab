@@ -1,47 +1,14 @@
 """Start a fresh fleet and real Router per policy and verify backend receipt counts."""
 
 import argparse
-import contextlib
 import json
 import platform
 import re
 import shlex
 import subprocess
-import time
-import urllib.request
 from pathlib import Path
 
-
-def get(url):
-    with urllib.request.urlopen(url, timeout=3) as response:
-        return response.read().decode()
-
-
-@contextlib.contextmanager
-def process(args, log):
-    with open(log, "w") as output:
-        child = subprocess.Popen(args, stdout=output, stderr=subprocess.STDOUT)
-        try:
-            yield child
-        finally:
-            child.terminate()
-            try:
-                child.wait(5)
-            except subprocess.TimeoutExpired:
-                child.kill()
-                child.wait()
-
-
-def ready(url, child):
-    for _ in range(300):
-        if child.poll() is not None:
-            raise RuntimeError(f"process exited {child.returncode} before {url}")
-        try:
-            get(url)
-            return
-        except OSError:
-            time.sleep(0.1)
-    raise TimeoutError(url)
+from harness import get, process, ready
 
 
 def counter(text, name):

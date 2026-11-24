@@ -15,8 +15,7 @@ import cbor2
 import msgspec
 import zmq
 from audit import CACHE, CLASSES, EVENTS, HASHING, ROOT, inspect, source
-from compare import process, ready
-from regress import call, complete, control
+from harness import call, complete, control, process, ready
 
 
 def oracle(repo, commit):
