@@ -1,0 +1,57 @@
+{
+  "dispatch_lag_ms": {
+    "p50": 12.648611,
+    "p95": 16.889921,
+    "p99": 27.093509
+  },
+  "e2e_ms": {
+    "p50": 11.95467,
+    "p95": 19.884286,
+    "p99": 27.183627
+  },
+  "errors": 0,
+  "first_error": "",
+  "inter_chunk_ms": {
+    "p50": 2.119158,
+    "p95": 3.2647,
+    "p99": 4.205806
+  },
+  "rate": 0,
+  "requests": 5000,
+  "seconds": 2.005931459,
+  "seed": 42,
+  "success": 5000,
+  "success_rps": 2492.607600108434,
+  "ttft_ms": {
+    "p50": 5.283929,
+    "p95": 12.242684,
+    "p99": 18.849935
+  },
+  "policy": "cache_aware",
+  "router_version": "159dcfc",
+  "worker_counts": [
+    1361,
+    941,
+    1392,
+    1306
+  ],
+  "workers": 4,
+  "profile": {
+    "blocks": 12,
+    "slots": 8,
+    "prefill": "80us",
+    "decode": "1ms",
+    "tick": "1ms",
+    "batch-tokens": 128
+  },
+  "backend_received": 5000,
+  "cached_prompt_tokens": 120512,
+  "prompt_tokens": 165000,
+  "cached_fraction": 0.7303757575757576,
+  "concurrency": 32,
+  "system": "Linux",
+  "machine": "x86_64",
+  "trace": null,
+  "synthetic_output": 4,
+  "synthetic_stream": true
+}

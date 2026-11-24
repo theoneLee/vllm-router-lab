@@ -132,6 +132,9 @@ def main():
     p.add_argument("--results", type=Path, default=Path("results/matrix"))
     args = p.parse_args()
     rows = json.loads((ROOT / "protocol/versions.json").read_text())
+    args.results.mkdir(parents=True, exist_ok=True)
+    summary = args.results / "matrix.json"
+    summary.unlink(missing_ok=True)
     report = []
     for row in rows:
         v = row["version"]
@@ -176,7 +179,7 @@ def main():
                 discovery="http" if row["source_discovery"] else "static",
             )
         )
-    (args.results / "matrix.json").write_text(json.dumps(report, indent=2) + "\n")
+    summary.write_text(json.dumps(report, indent=2) + "\n")
 
 
 if __name__ == "__main__":

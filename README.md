@@ -6,7 +6,7 @@ Go 进程可启动多个独立 HTTP 监听地址。每个 rank 有自己的槽�
 
 ## 跑第一个双 rank 实验
 
-需要 Go 1.25+、Python 3.10+，以及可执行的上游 Rust Router。回归矩阵固定 Router 提交 `159dcfcfcd717765d48b2ad24267f2a073d2501b`。以下命令在仓库根目录运行。
+本次使用 Go 1.25+、Python 3.12 和可执行的上游 Rust Router。从源码构建 Router 需要 Rust/C++ 工具链、CMake 与 protoc。若机器默认 Python 是 3.15，请让 PyO3 使用 3.12（设置 `PYO3_PYTHON` 为该解释器的绝对路径）。回归矩阵固定 Router 提交 `159dcfcfcd717765d48b2ad24267f2a073d2501b`。以下命令在仓库根目录运行。
 
 ```sh
 go test -race ./...
