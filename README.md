@@ -42,6 +42,7 @@ python3 scripts/compare.py --router "$ROUTER" --router-version 159dcfc \
 
 模拟配置可设置每个未命中 token 的 prefill 时间、decode 间隔、固定响应延迟、每 rank 并发槽位，以及每轮迭代共享的 token 预算。逻辑缓存只存 block 身份和 LRU 状态。GPU 内核耗时、真实模型输出、混合注意力层、LoRA、多模态和 KV 张量搬运均超出本矩阵范围。研究具体 GPU 的延迟需要用真实引擎校准。
 
+- [Project highlights and engineering reference (English)](docs/project-highlights.md)
 - [实测报告与原始数据](evidence/README.md)
 - [滚动维护最近十个 vLLM 版本的 runbook](RUNBOOK.md)
 - [已固定的版本、提交和协议字段](protocol/versions.json)

@@ -1,0 +1,59 @@
+{
+  "router_version": "v0.1.17",
+  "os": "Linux",
+  "arch": "x86_64",
+  "python": "3.12.14",
+  "aiohttp": "3.14.5",
+  "workers": 100,
+  "concurrency": 128,
+  "requests_per_trial": 20000,
+  "trials": [
+    {
+      "client": "go",
+      "success": 20000,
+      "received": 20000,
+      "success_rps": 18222.710822908128,
+      "e2e_p99_ms": 19.290007
+    },
+    {
+      "client": "python",
+      "success": 20000,
+      "received": 20000,
+      "success_rps": 6704.82271538432,
+      "e2e_p99_ms": 36.75706300055026
+    },
+    {
+      "client": "python",
+      "success": 20000,
+      "received": 20000,
+      "success_rps": 6058.813237574024,
+      "e2e_p99_ms": 61.70921600005386
+    },
+    {
+      "client": "go",
+      "success": 20000,
+      "received": 20000,
+      "success_rps": 21189.134885445234,
+      "e2e_p99_ms": 19.238997
+    },
+    {
+      "client": "go",
+      "success": 20000,
+      "received": 20000,
+      "success_rps": 18958.16832479341,
+      "e2e_p99_ms": 32.427722
+    },
+    {
+      "client": "python",
+      "success": 20000,
+      "received": 20000,
+      "success_rps": 6416.124134690183,
+      "e2e_p99_ms": 83.94304400007968
+    }
+  ],
+  "median_success_rps": {
+    "go": 18958.16832479341,
+    "python": 6416.124134690183
+  },
+  "lab_commit": "6484033985e823cc379ecacfd30bf0da97b1717e"
+}
