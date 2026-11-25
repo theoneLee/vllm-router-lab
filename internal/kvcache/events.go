@@ -1,4 +1,4 @@
-package main
+package kvcache
 
 import (
 	"encoding/binary"
@@ -7,14 +7,15 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-// The cache emits full digests. Only the encoder chooses the on-wire hash format.
-type cacheEvent interface{ wire(intHashes bool) any }
+// Event is a cache change. The cache emits full digests. Only the encoder
+// chooses the on-wire hash format.
+type Event interface{ wire(intHashes bool) any }
 type blockStored struct {
-	key    digest
-	parent *digest
+	key    Digest
+	parent *Digest
 	tokens []uint32
 }
-type blockRemoved struct{ key digest }
+type blockRemoved struct{ key Digest }
 type allBlocksCleared struct{}
 
 type storedWire struct {
@@ -36,7 +37,7 @@ type removedWire struct {
 	GroupIndex  int    `msgpack:"group_idx"`
 }
 
-func externalHash(key digest, intHashes bool) any {
+func externalHash(key Digest, intHashes bool) any {
 	if intHashes {
 		return binary.BigEndian.Uint64(key[24:])
 	}
@@ -59,7 +60,7 @@ func (e blockRemoved) wire(intHashes bool) any {
 }
 func (allBlocksCleared) wire(bool) any { return map[string]string{"type": "AllBlocksCleared"} }
 
-func encodeBatch(events []cacheEvent, rank int, intHashes bool, ts time.Time) ([]byte, error) {
+func encodeBatch(events []Event, rank int, intHashes bool, ts time.Time) ([]byte, error) {
 	encoded := make([]any, len(events))
 	for i, event := range events {
 		encoded[i] = event.wire(intHashes)

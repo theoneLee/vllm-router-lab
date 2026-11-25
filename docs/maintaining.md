@@ -30,7 +30,7 @@ These are the questions to answer for a new release, and where upstream answers 
 | What cache metadata can the control plane read? | `vllm/config/cache.py`, `vllm/v1/metrics/`, Router `src/kv_index/source/discovery/` | Per-engine labels, metadata re-reads, per-rank credit revocation |
 | What does an HTTP client see? | vLLM completions server, Router HTTP forwarding | Token-ID requests, SSE end and disconnect, slot release after cancel |
 
-If behaviour really changed, update `profile.go`, the worker or the cache, rebuild, and re-run.
+If behaviour really changed, update `internal/fleet` (profiles and workers) or `internal/kvcache` (cache and events), rebuild, and re-run.
 
 ## 2. Run the version matrix
 
@@ -38,7 +38,7 @@ If behaviour really changed, update `profile.go`, the worker or the cache, rebui
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -r scripts/requirements-audit.txt
-go build -o routerlab .
+go build -o routerlab ./cmd/routerlab
 python scripts/matrix.py ../vllm --router "$ROUTER" --router-version "$ROUTER_REV"
 ```
 

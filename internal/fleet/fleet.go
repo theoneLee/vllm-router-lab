@@ -1,18 +1,18 @@
-package main
+package fleet
 
 import (
 	"context"
 	"crypto/rand"
-
 	"flag"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
-
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/theoneLee/vllm-router-lab/internal/kvcache"
 )
 
 type rank struct {
@@ -21,8 +21,8 @@ type rank struct {
 	batch                            *batcher
 	metricsReads                     atomic.Int64
 	mu                               sync.Mutex
-	cache                            cache
-	events                           *feed
+	cache                            *kvcache.Cache
+	events                           *kvcache.Feed
 	algorithm                        string
 	slots                            chan struct{}
 	hits, requests, canceled, broken atomic.Int64
@@ -60,7 +60,9 @@ func wait(ctx context.Context, d time.Duration) bool {
 		return true
 	}
 }
-func fleet(args []string) error {
+
+// Run parses the fleet flags and serves workers until one listener fails.
+func Run(args []string) error {
 	var c fleetConfig
 	f := flag.NewFlagSet("fleet", flag.ContinueOnError)
 	f.BoolVar(&c.intHashes, "int-hashes", false, "export low 64 bits as vLLM legacy integer event hashes")
@@ -109,9 +111,9 @@ func fleet(args []string) error {
 			if err != nil {
 				return err
 			}
-			k := &rank{batch: newBatcher(ctx, c.tick, c.budget), cache: cache{capacity: c.blocks, rootHash: hashRoot}, algorithm: "sha256_cbor", slots: make(chan struct{}, c.slots)}
+			k := &rank{batch: newBatcher(ctx, c.tick, c.budget), cache: kvcache.New(c.blocks, hashRoot), algorithm: "sha256_cbor", slots: make(chan struct{}, c.slots)}
 			if c.events {
-				feed, e := newFeed(ctx, fmt.Sprintf("kv/%s/%d", w.id, j), j, c.window, c.intHashes)
+				feed, e := kvcache.NewFeed(ctx, fmt.Sprintf("kv/%s/%d", w.id, j), j, c.window, c.intHashes)
 				if e != nil {
 					return e
 				}

@@ -62,7 +62,7 @@ scripts/*.py   启动全新进程，通过 /lab/* 注入故障，
 git clone https://github.com/theoneLee/vllm-router-lab.git
 cd vllm-router-lab
 go test -race ./...
-go build -o routerlab .
+go build -o routerlab ./cmd/routerlab
 ```
 
 ### 2. 先单独跑一下 fleet
@@ -200,12 +200,15 @@ $ROUTER --worker-urls http://127.0.0.1:18000 http://127.0.0.1:18001 \
 ## 目录结构
 
 ```
-*.go         Go 写的 fleet 和回放客户端（一个二进制：routerlab）
-scripts/     Python 测试框架、场景、策略对比、版本矩阵
-protocol/    固定的 vLLM 版本及其协议特性
-examples/    示例 trace 和耗时 profile
-evidence/    文档里每个数字对应的原始 JSON
-docs/        参考、基准测试、维护指南
+cmd/routerlab/     CLI 入口（一个二进制：routerlab）
+internal/fleet/    假 Worker：HTTP 接口、/lab 控制、指标、batching、版本 profile
+internal/kvcache/  每个 rank 的前缀缓存、KV 事件编码、ZMQ 事件流和 replay
+internal/replay/   压测客户端和 trace 回放
+scripts/           Python 测试框架、场景、策略对比、版本矩阵
+protocol/          固定的 vLLM 版本及其协议特性
+examples/          示例 trace 和耗时 profile
+evidence/          文档里每个数字对应的原始 JSON
+docs/              参考、基准测试、维护指南
 ```
 
 ## 许可证

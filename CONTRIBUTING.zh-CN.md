@@ -11,7 +11,7 @@
 ```sh
 go vet ./...
 go test -race ./...
-go build -o routerlab .
+go build -o routerlab ./cmd/routerlab
 ```
 
 如果你改了 Router 能感知到的部分（HTTP 接口、事件、哈希、服务发现），还要对真实 Router 跑一遍回归：

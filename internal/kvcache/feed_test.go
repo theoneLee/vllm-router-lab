@@ -1,4 +1,4 @@
-package main
+package kvcache
 
 import (
 	"bytes"
@@ -22,16 +22,16 @@ func (p *recordingPublisher) SendMulti(m zmq.Msg) error {
 
 func TestLiveDropAndReplayWindow(t *testing.T) {
 	pub := &recordingPublisher{}
-	f := feed{pub: pub, topic: "rank1", rank: 1, window: 2}
-	events := []cacheEvent{allBlocksCleared{}}
-	f.emit(events)
-	f.drop = true
-	f.emit(events)
+	f := Feed{pub: pub, topic: "rank1", rank: 1, window: 2}
+	events := []Event{allBlocksCleared{}}
+	f.Emit(events)
+	f.DropNext()
+	f.Emit(events)
 	dropped := f.replayFrom(1)
 	if len(dropped) != 1 || dropped[0].seq != 1 || len(dropped[0].body) == 0 {
 		t.Fatalf("dropped batch missing in replay: %v", dropped)
 	}
-	f.emit(events)
+	f.Emit(events)
 	if len(pub.live) != 2 {
 		t.Fatalf("got %d live batches, want 2", len(pub.live))
 	}

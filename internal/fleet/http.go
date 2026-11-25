@@ -1,4 +1,4 @@
-package main
+package fleet
 
 import (
 	"encoding/json"
@@ -59,7 +59,7 @@ func (w *worker) ServeHTTP(out http.ResponseWriter, r *http.Request) {
 		m := object{}
 		for i, s := range w.ranks {
 			if s.events != nil {
-				m[strconv.Itoa(i)] = s.events.metadata()
+				m[strconv.Itoa(i)] = s.events.Metadata()
 			}
 		}
 		writeJSON(out, m)
@@ -96,7 +96,7 @@ func (w *worker) complete(out http.ResponseWriter, r *http.Request, k *rank, n i
 	k.requests.Add(1)
 	k.promptTokens.Add(int64(len(q.Prompt)))
 	k.mu.Lock()
-	hits := k.cache.prefix(q.Prompt, w.cfg.size)
+	hits := k.cache.Prefix(q.Prompt, w.cfg.size)
 	k.mu.Unlock()
 	missing := len(q.Prompt) - hits
 	if !k.batch.step(ctx, missing) || !wait(ctx, w.cfg.network+time.Duration(missing)*w.cfg.prefill) {
@@ -105,8 +105,7 @@ func (w *worker) complete(out http.ResponseWriter, r *http.Request, k *rank, n i
 	}
 	k.mu.Lock()
 	if !k.frozen {
-		events := k.cache.store(q.Prompt, w.cfg.size)
-		k.events.emit(events)
+		k.events.Emit(k.cache.Store(q.Prompt, w.cfg.size))
 	}
 	k.hits.Add(int64(hits))
 	k.mu.Unlock()

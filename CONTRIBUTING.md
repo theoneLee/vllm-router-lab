@@ -9,7 +9,7 @@ Thanks for helping out. Bug reports, new scenarios, new vLLM profiles and doc fi
 ```sh
 go vet ./...
 go test -race ./...
-go build -o routerlab .
+go build -o routerlab ./cmd/routerlab
 ```
 
 If you touched anything the Router sees (HTTP endpoints, events, hashing, discovery), also run the regressions against a real Router:

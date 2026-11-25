@@ -60,7 +60,7 @@ You need Go 1.25+ and Python 3.10+ (tested with 3.12). The regression and compar
 git clone https://github.com/theoneLee/vllm-router-lab.git
 cd vllm-router-lab
 go test -race ./...
-go build -o routerlab .
+go build -o routerlab ./cmd/routerlab
 ```
 
 ### 2. Try the fleet on its own
@@ -198,12 +198,15 @@ The streaming row is why you should look at more than one metric: on this worklo
 ## Repository layout
 
 ```
-*.go         Go fleet and replay client (one binary: routerlab)
-scripts/     Python harness, scenarios, policy comparison, version matrix
-protocol/    Pinned vLLM versions and their wire-format features
-examples/    Sample trace and cost profile
-evidence/    Raw JSON behind every number in the docs
-docs/        Reference, benchmarks, maintenance guide
+cmd/routerlab/     CLI entry point (one binary: routerlab)
+internal/fleet/    Fake workers: HTTP endpoints, /lab controls, metrics, batching, version profiles
+internal/kvcache/  Per-rank prefix cache, KV event encoding, ZMQ feed and replay
+internal/replay/   Load generator and trace replay
+scripts/           Python harness, scenarios, policy comparison, version matrix
+protocol/          Pinned vLLM versions and their wire-format features
+examples/          Sample trace and cost profile
+evidence/          Raw JSON behind every number in the docs
+docs/              Reference, benchmarks, maintenance guide
 ```
 
 ## License

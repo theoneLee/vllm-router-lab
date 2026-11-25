@@ -1,4 +1,4 @@
-package main
+package fleet
 
 import (
 	"net/http"
@@ -21,10 +21,7 @@ func (k *rank) writeState(out http.ResponseWriter, n int, instance string) {
 		"broken":                  k.broken.Load(),
 	}
 	if k.events != nil {
-		k.events.mu.Lock()
-		m["next_seq"] = k.events.seq
-		m["replays"] = k.events.replays
-		k.events.mu.Unlock()
+		m["next_seq"], m["replays"] = k.events.Stats()
 	}
 	writeJSON(out, m)
 }
@@ -38,8 +35,7 @@ func (k *rank) control(out http.ResponseWriter, r *http.Request) {
 	defer k.mu.Unlock()
 	switch r.URL.Path {
 	case "/lab/clear":
-		k.cache.clear()
-		k.events.emit([]cacheEvent{allBlocksCleared{}})
+		k.events.Emit(k.cache.Clear())
 	case "/lab/freeze":
 		k.frozen = r.URL.Query().Get("value") == "1"
 	case "/lab/cut":
@@ -56,13 +52,11 @@ func (k *rank) control(out http.ResponseWriter, r *http.Request) {
 			http.Error(out, "events disabled", 409)
 			return
 		}
-		k.events.mu.Lock()
 		if r.URL.Path == "/lab/drop-next" {
-			k.events.drop = true
+			k.events.DropNext()
 		} else {
-			k.events.history = nil
+			k.events.ExpireReplay()
 		}
-		k.events.mu.Unlock()
 	}
 	out.WriteHeader(204)
 }

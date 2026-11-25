@@ -1,4 +1,4 @@
-package main
+package replay
 
 import (
 	"bufio"
@@ -15,6 +15,15 @@ import (
 	"sync"
 	"time"
 )
+
+type object = map[string]any
+
+type request struct {
+	Prompt []uint32 `json:"prompt"`
+	Stream bool     `json:"stream"`
+	Tokens int      `json:"max_tokens"`
+	Model  string   `json:"model"`
+}
 
 type traceRow struct {
 	At     float64  `json:"at_ms"`
@@ -108,7 +117,9 @@ func summary(samples []time.Duration) map[string]float64 {
 	}
 	return m
 }
-func replay(args []string) error {
+
+// Run parses the replay flags, sends the workload and prints a JSON summary.
+func Run(args []string) error {
 	f := flag.NewFlagSet("replay", flag.ContinueOnError)
 	url := f.String("url", "http://127.0.0.1:30000", "Router URL")
 	n := f.Int("n", 1000, "synthetic requests")

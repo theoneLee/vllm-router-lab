@@ -1,4 +1,4 @@
-package main
+package kvcache
 
 import (
 	"context"
@@ -16,7 +16,10 @@ type frame struct {
 	seq  uint64
 	body []byte
 }
-type feed struct {
+
+// Feed publishes a rank's event batches on ZMQ PUB and answers replay
+// requests from the retained window. A nil *Feed drops every event.
+type Feed struct {
 	pub, replay  zmq.Socket
 	topic        string
 	rank, window int
@@ -27,8 +30,8 @@ type feed struct {
 	drop         bool
 }
 
-func newFeed(ctx context.Context, topic string, rank, window int, intHashes bool) (*feed, error) {
-	f := &feed{
+func NewFeed(ctx context.Context, topic string, rank, window int, intHashes bool) (*Feed, error) {
+	f := &Feed{
 		pub: zmq.NewPub(ctx), replay: zmq.NewRouter(ctx),
 		rank: rank, topic: topic, window: window, intHashes: intHashes,
 	}
@@ -40,7 +43,7 @@ func newFeed(ctx context.Context, topic string, rank, window int, intHashes bool
 	go f.serveReplay()
 	return f, nil
 }
-func (f *feed) serveReplay() {
+func (f *Feed) serveReplay() {
 	for {
 		m, e := f.replay.Recv()
 		if e != nil {
@@ -66,7 +69,7 @@ func (f *feed) serveReplay() {
 }
 
 // Snapshot under the lock so sending a replay cannot stall live publication.
-func (f *feed) replayFrom(from uint64) []frame {
+func (f *Feed) replayFrom(from uint64) []frame {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.replays++
@@ -78,7 +81,8 @@ func (f *feed) replayFrom(from uint64) []frame {
 	return nil
 }
 
-func (f *feed) emit(events []cacheEvent) {
+// Emit encodes events as one batch, keeps it for replay and publishes it.
+func (f *Feed) Emit(events []Event) {
 	if f == nil || len(events) == 0 {
 		return
 	}
@@ -102,6 +106,29 @@ func (f *feed) emit(events []cacheEvent) {
 		log.Printf("publish: %v", e)
 	}
 }
-func (f *feed) metadata() object {
-	return object{"endpoint": "tcp://" + f.pub.Addr().String(), "replay_endpoint": "tcp://" + f.replay.Addr().String(), "topic": f.topic, "publisher": "zmq", "encoding": "msgpack", "schema_version": 1, "enable_kv_cache_events": true}
+
+// DropNext keeps the next batch in replay history but skips publishing it.
+func (f *Feed) DropNext() {
+	f.mu.Lock()
+	f.drop = true
+	f.mu.Unlock()
+}
+
+// ExpireReplay discards the retained history.
+func (f *Feed) ExpireReplay() {
+	f.mu.Lock()
+	f.history = nil
+	f.mu.Unlock()
+}
+
+// Stats reports the next sequence number and how many replays were served.
+func (f *Feed) Stats() (nextSeq, replays uint64) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.seq, f.replays
+}
+
+// Metadata is this feed's entry in vLLM's kv_event_sources response.
+func (f *Feed) Metadata() map[string]any {
+	return map[string]any{"endpoint": "tcp://" + f.pub.Addr().String(), "replay_endpoint": "tcp://" + f.replay.Addr().String(), "topic": f.topic, "publisher": "zmq", "encoding": "msgpack", "schema_version": 1, "enable_kv_cache_events": true}
 }
