@@ -32,7 +32,7 @@ git diff -- protocol/versions.json
 | 控制面能读到哪些缓存元数据？ | `vllm/config/cache.py`、`vllm/v1/metrics/`、Router 的 `src/kv_index/source/discovery/` | 每个 engine 的标签、元数据重读、按 rank 撤销信用 |
 | HTTP 客户端看到的是什么？ | vLLM completions 服务、Router 的 HTTP 转发 | token-ID 请求、SSE 结束和断开、取消后释放槽位 |
 
-如果行为确实变了，修改 `profile.go`、Worker 或缓存逻辑，重新构建，再跑一遍。
+如果行为确实变了，修改 `internal/fleet`（profile 和 Worker）或 `internal/kvcache`（缓存和事件），重新构建，再跑一遍。
 
 ## 2. 跑版本矩阵
 
@@ -40,7 +40,7 @@ git diff -- protocol/versions.json
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -r scripts/requirements-audit.txt
-go build -o routerlab .
+go build -o routerlab ./cmd/routerlab
 python scripts/matrix.py ../vllm --router "$ROUTER" --router-version "$ROUTER_REV"
 ```
 

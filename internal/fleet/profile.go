@@ -1,16 +1,15 @@
-package main
+package fleet
 
 import (
 	"crypto/rand"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
-)
 
-//go:embed protocol/versions.json
-var versionManifest []byte
+	"github.com/theoneLee/vllm-router-lab/internal/kvcache"
+	"github.com/theoneLee/vllm-router-lab/protocol"
+)
 
 type profile struct {
 	Version         string
@@ -20,7 +19,7 @@ type profile struct {
 
 func selectProfile(version string) (profile, error) {
 	var profiles []profile
-	if err := json.Unmarshal(versionManifest, &profiles); err != nil {
+	if err := json.Unmarshal(protocol.Versions, &profiles); err != nil {
 		return profile{}, err
 	}
 	for _, p := range profiles {
@@ -31,17 +30,17 @@ func selectProfile(version string) (profile, error) {
 	return profile{}, fmt.Errorf("unknown version %q; see protocol/versions.json", version)
 }
 
-func (p profile) hashRoot(seed string) (digest, error) {
+func (p profile) hashRoot(seed string) (kvcache.Digest, error) {
 	if seed != "" {
 		if _, err := strconv.ParseUint(seed, 10, 32); err != nil {
-			return digest{}, fmt.Errorf("invalid numeric hash seed %q", seed)
+			return kvcache.Digest{}, fmt.Errorf("invalid numeric hash seed %q", seed)
 		}
-		return hashCBOR(seed), nil
+		return kvcache.HashCBOR(seed), nil
 	}
 	if p.FixedRoot {
-		return root, nil
+		return kvcache.DefaultRoot, nil
 	}
-	var r digest
+	var r kvcache.Digest
 	_, err := rand.Read(r[:])
 	return r, err
 }

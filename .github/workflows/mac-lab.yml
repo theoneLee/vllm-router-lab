@@ -17,7 +17,7 @@ jobs:
       - name: Check and build the Go fleet
         run: |
           go test -race ./...
-          go build -o routerlab .
+          go build -o routerlab ./cmd/routerlab
       - uses: actions/checkout@v4
         with:
           repository: vllm-project/router

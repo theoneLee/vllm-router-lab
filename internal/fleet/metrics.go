@@ -1,4 +1,4 @@
-package main
+package fleet
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ func (w *worker) writeMetrics(out http.ResponseWriter) {
 		s.metricsReads.Add(1)
 		algo := s.algorithm
 		s.lastReportedAlgorithm = algo
-		used := s.cache.order.Len()
+		used := s.cache.Len()
 		s.mu.Unlock()
 		label := ""
 		if algo != "" {
